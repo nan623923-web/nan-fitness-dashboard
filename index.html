@@ -698,7 +698,7 @@ h2 {
   <div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
   <script>
 window.FITNESS_DATA = {
-  "asOf": "2026-09-15",
+  "asOf": "2026-09-17",
   "source": "飞书健身记录 + Keep 本地只读导出",
   "entries": [
     {
@@ -1411,6 +1411,16 @@ window.FITNESS_DATA = {
       "runKm": 0,
       "rating": "达标",
       "summary": "爬楼10分钟38层；面拉3×12（15/15/约20–25kg）；视频肩部三动作组合3轮，每动作8次；坐姿双侧拉杆下拉2×8（每侧加15kg，器械初始阻力未确认）。肩部感受很好，最后下拉特别累。"
+    },
+    {
+      "date": "2026-09-17",
+      "type": "推+腹+肩+跑步",
+      "strengthReps": 114,
+      "sets": 15,
+      "runKm": 5.5,
+      "pace": "约6′28″/km",
+      "rating": "达标",
+      "summary": "校园变速跑1.5公里/10分钟（6′40″/km）；跑步机4公里，均速约9.4km/h、间歇加速至12km/h（约6′23″/km），全程无不适。标准俯卧撑3×6量刚好；直腿坐姿屈膝3×8第三组后半程吃力；肩部三动作组合3轮完成。"
     }
   ]
 };
@@ -1608,6 +1618,7 @@ window.FITNESS_DATA = {
       const amounts = [];
       if (entry.strengthReps) amounts.push(`力量 ${entry.strengthReps} 次 / ${entry.sets} 组`);
       if (entry.runKm) amounts.push(`跑步 ${entry.runKm} 公里`);
+      if (entry.pace) amounts.push(`配速 ${entry.pace}`);
       text.textContent = `${entry.type} · ${amounts.join(" · ")} · ${entry.rating}。 ${entry.summary}`;
     }
     tooltip.replaceChildren(title, text);
@@ -1783,8 +1794,8 @@ window.FITNESS_DATA = {
       const value = document.createElement("span");
       value.className = "recent-value";
       value.textContent = entry.runKm && !entry.strengthReps
-        ? `${entry.runKm} km`
-        : `${entry.strengthReps} 次${entry.runKm ? ` + ${entry.runKm} km` : ""}`;
+        ? `${entry.runKm} km${entry.pace ? ` · ${entry.pace}` : ""}`
+        : `${entry.strengthReps} 次${entry.runKm ? ` + ${entry.runKm} km` : ""}${entry.pace ? ` · ${entry.pace}` : ""}`;
       row.append(icon, main, value);
       row.title = entry.summary;
       holder.appendChild(row);
