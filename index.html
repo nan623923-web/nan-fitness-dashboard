@@ -698,7 +698,7 @@ h2 {
   <div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
   <script>
 window.FITNESS_DATA = {
-  "asOf": "2026-09-17",
+  "asOf": "2026-09-25",
   "source": "飞书健身记录 + Keep 本地只读导出",
   "entries": [
     {
@@ -1431,11 +1431,91 @@ window.FITNESS_DATA = {
       "pace": "约6′28″/km",
       "rating": "达标",
       "summary": "校园变速跑1.5公里/10分钟（6′40″/km）；跑步机4公里，均速约9.4km/h、间歇加速至12km/h（约6′23″/km），全程无不适。标准俯卧撑3×6量刚好；直腿坐姿屈膝3×8第三组后半程吃力；肩部三动作组合3轮完成。"
+    },
+    {
+      "date": "2026-09-18",
+      "type": "室外步行",
+      "strengthReps": 0,
+      "sets": 0,
+      "runKm": 0,
+      "walkKm": 2.5,
+      "rating": "已完成",
+      "summary": "室外散步、行走2.5公里。步行距离单独记录，不计入跑步里程。"
+    },
+    {
+      "date": "2026-09-19",
+      "type": "胸+跑步+步行",
+      "strengthReps": 70,
+      "sets": 7,
+      "runKm": 4,
+      "walkKm": 2,
+      "pace": "8′15″/km",
+      "rating": "已完成",
+      "summary": "早上步行2公里；跑步4公里，33分钟，配速8′15″/km；哑铃飞鸟4×10，使用两只5kg哑铃；标准俯卧撑3×10。"
+    },
+    {
+      "date": "2026-09-20",
+      "type": "胸+跑步",
+      "strengthReps": 0,
+      "sets": 8,
+      "runKm": 5.5,
+      "pace": "未提供",
+      "rating": "已完成",
+      "summary": "跑步5.5公里，用时未记录；哑铃飞鸟4组、标准俯卧撑4组，各组次数和飞鸟重量待补，因此力量次数暂不计入。"
+    },
+    {
+      "date": "2026-09-21",
+      "type": "跑步",
+      "strengthReps": 0,
+      "sets": 0,
+      "runKm": 10,
+      "pace": "6′48″/km",
+      "rating": "已完成",
+      "summary": "跑步10公里，68分钟，配速6′48″/km。"
+    },
+    {
+      "date": "2026-09-22",
+      "type": "跑步",
+      "strengthReps": 0,
+      "sets": 0,
+      "runKm": 4,
+      "pace": "约7′57″/km",
+      "rating": "已完成",
+      "summary": "跑步4公里，31分49秒，平均配速约7′57″/km。"
+    },
+    {
+      "date": "2026-09-23",
+      "type": "跑步",
+      "strengthReps": 0,
+      "sets": 0,
+      "runKm": 4,
+      "pace": "7′37″/km",
+      "rating": "已完成",
+      "summary": "跑步4公里，30分28秒，平均配速7′37″/km。"
+    },
+    {
+      "date": "2026-09-24",
+      "type": "校园跑",
+      "strengthReps": 0,
+      "sets": 0,
+      "runKm": 1.5,
+      "pace": "未提供",
+      "rating": "已完成",
+      "summary": "校园跑1.5公里，用时未记录。"
+    },
+    {
+      "date": "2026-09-25",
+      "type": "胸+跑步",
+      "strengthReps": 0,
+      "sets": 4,
+      "runKm": 4,
+      "pace": "8′00″/km",
+      "rating": "已完成",
+      "summary": "跑步4公里，32分钟，配速8′00″/km；哑铃飞鸟4组，第一组每手5kg，后三组每手7.5kg，各组次数待补，因此力量次数暂不计入。"
     }
   ]
 };
-  </script>
-  <script>
+
 (() => {
   const data = window.FITNESS_DATA;
   if (!data || !Array.isArray(data.entries)) return;
@@ -1448,7 +1528,7 @@ window.FITNESS_DATA = {
   const totalReps = sum(entries.map((entry) => entry.strengthReps));
   const totalKm = sum(entries.map((entry) => entry.runKm));
   const totalSets = sum(entries.map((entry) => entry.sets));
-  const strengthEntries = entries.filter((entry) => entry.strengthReps > 0);
+  const strengthEntries = entries.filter((entry) => entry.strengthReps > 0 || entry.sets > 0);
   const runEntries = entries.filter((entry) => entry.runKm > 0);
   const currentStreak = streakEndingAt(asOf, activeDates);
   const longestStreak = longest(activeDates);
@@ -1508,7 +1588,7 @@ window.FITNESS_DATA = {
   }
 
   function volume(entry) {
-    return (entry?.strengthReps || 0) + (entry?.runKm || 0) * 20;
+    return (entry?.strengthReps || 0) + (entry?.sets || 0) * 5 + (entry?.runKm || 0) * 20 + (entry?.walkKm || 0) * 5;
   }
 
   function level(entry) {
@@ -1612,7 +1692,9 @@ window.FITNESS_DATA = {
     if (!entry) return `${formatDate(date)}，未训练`;
     const detail = [
       entry.strengthReps ? `力量${entry.strengthReps}次` : "",
-      entry.runKm ? `跑步${entry.runKm}公里` : ""
+      entry.runKm ? `跑步${entry.runKm}公里` : "",
+      entry.walkKm ? `步行${entry.walkKm}公里` : "",
+      entry.sets && !entry.strengthReps ? `力量${entry.sets}组（次数待补）` : ""
     ].filter(Boolean).join("，");
     return `${formatDate(date)}，${detail}，${entry.rating}`;
   }
@@ -1627,7 +1709,9 @@ window.FITNESS_DATA = {
     else {
       const amounts = [];
       if (entry.strengthReps) amounts.push(`力量 ${entry.strengthReps} 次 / ${entry.sets} 组`);
+      else if (entry.sets) amounts.push(`力量 ${entry.sets} 组 / 次数待补`);
       if (entry.runKm) amounts.push(`跑步 ${entry.runKm} 公里`);
+      if (entry.walkKm) amounts.push(`步行 ${entry.walkKm} 公里`);
       if (entry.pace) amounts.push(`配速 ${entry.pace}`);
       text.textContent = `${entry.type} · ${amounts.join(" · ")} · ${entry.rating}。 ${entry.summary}`;
     }
@@ -1793,7 +1877,7 @@ window.FITNESS_DATA = {
       row.className = "recent-row";
       const icon = document.createElement("span");
       icon.className = "recent-icon";
-      icon.textContent = entry.runKm > 0 && !entry.strengthReps ? "跑" : "练";
+      icon.textContent = entry.runKm > 0 && !entry.strengthReps && !entry.sets ? "跑" : entry.walkKm > 0 && !entry.runKm && !entry.sets ? "走" : "练";
       const main = document.createElement("div");
       main.className = "recent-main";
       const title = document.createElement("strong");
@@ -1803,9 +1887,11 @@ window.FITNESS_DATA = {
       main.append(title, date);
       const value = document.createElement("span");
       value.className = "recent-value";
-      value.textContent = entry.runKm && !entry.strengthReps
+      value.textContent = entry.runKm && !entry.strengthReps && !entry.sets
         ? `${entry.runKm} km${entry.pace ? ` · ${entry.pace}` : ""}`
-        : `${entry.strengthReps} 次${entry.runKm ? ` + ${entry.runKm} km` : ""}${entry.pace ? ` · ${entry.pace}` : ""}`;
+        : entry.walkKm && !entry.runKm && !entry.sets
+          ? `步行 ${entry.walkKm} km`
+          : `${entry.strengthReps ? `${entry.strengthReps} 次` : `${entry.sets} 组`}${entry.runKm ? ` + ${entry.runKm} km` : ""}${entry.pace ? ` · ${entry.pace}` : ""}`;
       row.append(icon, main, value);
       row.title = entry.summary;
       holder.appendChild(row);
