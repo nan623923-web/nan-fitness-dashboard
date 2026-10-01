@@ -131,7 +131,7 @@ h1 {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   margin-bottom: 38px;
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -312,6 +312,11 @@ h2 {
 }
 
 .heat-cell.future { opacity: .28; }
+.heat-cell.makeup {
+  outline: 1px dashed #d4ad57;
+  outline-offset: 1px;
+  background: #5a4724;
+}
 .level-0 { background: #202020; }
 .level-1 { background: var(--purple-1); }
 .level-2 { background: var(--purple-2); }
@@ -589,11 +594,9 @@ h2 {
     grid-template-columns: repeat(2, 1fr);
     border-radius: 17px;
   }
-  .stats article:last-child { grid-column: 1 / -1; }
   .stats article:nth-child(odd)::before { display: none; }
-  .stats article:last-child::before { display: none; }
   .stats article { border-bottom: 1px solid var(--line); }
-  .stats article:nth-last-child(-n+1) { border-bottom: 0; }
+  .stats article:nth-last-child(-n+2) { border-bottom: 0; }
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
@@ -635,6 +638,7 @@ h2 {
       <article><strong id="activeDays">—</strong><span>累计打卡天数</span></article>
       <article><strong id="currentStreak">—</strong><span>当前连续天数</span></article>
       <article><strong id="longestStreak">—</strong><span>最长连续天数</span></article>
+      <article><strong id="makeupCards">—</strong><span>可用补签卡</span></article>
     </section>
 
     <section class="activity" aria-labelledby="activityTitle">
@@ -685,6 +689,9 @@ h2 {
           <div><dt>累计力量组数</dt><dd id="totalSets">—</dd></div>
           <div><dt>最常训练类型</dt><dd id="favoriteType">—</dd></div>
           <div><dt>力量训练达标率</dt><dd id="passRate">—</dd></div>
+          <div><dt>累计获得补签卡</dt><dd id="earnedMakeupCards">—</dd></div>
+          <div><dt>已使用补签卡</dt><dd id="usedMakeupCards">—</dd></div>
+          <div><dt>下一张补签卡</dt><dd id="nextMakeupCard">—</dd></div>
         </dl>
       </article>
 
@@ -1573,6 +1580,7 @@ window.FITNESS_DATA = {
   const entries = [...data.entries].sort((a, b) => a.date.localeCompare(b.date));
   const byDate = new Map(entries.map((entry) => [entry.date, entry]));
   const activeDates = new Set(entries.map((entry) => entry.date));
+  const actualDates = new Set(entries.filter((entry) => !entry.isMakeup).map((entry) => entry.date));
   const asOf = parseDate(data.asOf);
 
   const totalReps = sum(entries.map((entry) => entry.strengthReps));
@@ -1582,6 +1590,10 @@ window.FITNESS_DATA = {
   const runEntries = entries.filter((entry) => entry.runKm > 0);
   const currentStreak = streakEndingAt(asOf, activeDates);
   const longestStreak = longest(activeDates);
+  const currentActualStreak = streakEndingAt(asOf, actualDates);
+  const earnedMakeupCards = rewardCount(actualDates, 7);
+  const usedMakeupCards = entries.filter((entry) => entry.isMakeup).length;
+  const availableMakeupCards = Math.max(earnedMakeupCards - usedMakeupCards, 0);
   const passCount = strengthEntries.filter((entry) => ["达标", "完美"].includes(entry.rating)).length;
 
   setText("asOf", formatShort(asOf));
@@ -1590,11 +1602,15 @@ window.FITNESS_DATA = {
   setText("activeDays", `${entries.length} 天`);
   setText("currentStreak", `${currentStreak} 天`);
   setText("longestStreak", `${longestStreak} 天`);
+  setText("makeupCards", `${availableMakeupCards} 张`);
   setText("strengthDays", `${strengthEntries.length} 天`);
   setText("runDays", `${runEntries.length} 天`);
   setText("totalSets", `${totalSets} 组`);
   setText("favoriteType", favoriteType(strengthEntries));
   setText("passRate", strengthEntries.length ? `${Math.round(passCount / strengthEntries.length * 100)}%` : "—");
+  setText("earnedMakeupCards", `${earnedMakeupCards} 张`);
+  setText("usedMakeupCards", `${usedMakeupCards} 张`);
+  setText("nextMakeupCard", `${currentActualStreak % 7}/7 天`);
 
   buildHeatmap();
   buildWeekly();
@@ -1603,7 +1619,12 @@ window.FITNESS_DATA = {
   bindTabs();
 
   function parseDate(value) {
-    return new Date(`${value}T00:00:00+08:00`);
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(year, month - 1, day, 12);
+  }
+
+  function calendarDayNumber(date) {
+    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000;
   }
 
   function isoDate(date) {
@@ -1667,12 +1688,28 @@ window.FITNESS_DATA = {
     let previous = null;
     for (const value of sorted) {
       const date = parseDate(value);
-      if (previous && (date - previous) / 86400000 === 1) current += 1;
+      if (previous && calendarDayNumber(date) - calendarDayNumber(previous) === 1) current += 1;
       else current = 1;
       best = Math.max(best, current);
       previous = date;
     }
     return best;
+  }
+
+  function rewardCount(set, interval) {
+    let total = 0;
+    let current = 0;
+    let previous = null;
+    for (const value of [...set].sort()) {
+      const date = parseDate(value);
+      if (previous && calendarDayNumber(date) - calendarDayNumber(previous) === 1) current += 1;
+      else {
+        total += Math.floor(current / interval);
+        current = 1;
+      }
+      previous = date;
+    }
+    return total + Math.floor(current / interval);
   }
 
   function favoriteType(list) {
@@ -1691,7 +1728,7 @@ window.FITNESS_DATA = {
     let start = addDays(asOf, -364);
     start = addDays(start, -start.getDay());
     const end = addDays(asOf, 6 - asOf.getDay());
-    const totalDays = Math.round((end - start) / 86400000) + 1;
+    const totalDays = calendarDayNumber(end) - calendarDayNumber(start) + 1;
     const totalWeeks = Math.ceil(totalDays / 7);
 
     labels.style.gridTemplateColumns = `repeat(${totalWeeks}, var(--cell))`;
@@ -1704,7 +1741,7 @@ window.FITNESS_DATA = {
       const entry = byDate.get(key);
       const cell = document.createElement("button");
       cell.type = "button";
-      cell.className = `heat-cell level-${level(entry)}${date > asOf ? " future" : ""}`;
+      cell.className = `heat-cell level-${level(entry)}${entry?.isMakeup ? " makeup" : ""}${date > asOf ? " future" : ""}`;
       cell.dataset.date = key;
       cell.setAttribute("aria-label", heatAria(date, entry));
 
@@ -1746,7 +1783,7 @@ window.FITNESS_DATA = {
       entry.walkKm ? `步行${entry.walkKm}公里` : "",
       entry.sets && !entry.strengthReps ? `力量${entry.sets}组（次数待补）` : ""
     ].filter(Boolean).join("，");
-    return `${formatDate(date)}，${detail}，${entry.rating}`;
+    return `${formatDate(date)}，${entry.isMakeup ? "补签，" : ""}${detail}，${entry.rating}`;
   }
 
   function showTooltip(target, date, entry) {
@@ -1763,7 +1800,7 @@ window.FITNESS_DATA = {
       if (entry.runKm) amounts.push(`跑步 ${entry.runKm} 公里`);
       if (entry.walkKm) amounts.push(`步行 ${entry.walkKm} 公里`);
       if (entry.pace) amounts.push(`配速 ${entry.pace}`);
-      text.textContent = `${entry.type} · ${amounts.join(" · ")} · ${entry.rating}。 ${entry.summary}`;
+      text.textContent = `${entry.isMakeup ? "补签 · " : ""}${entry.type} · ${amounts.join(" · ")} · ${entry.rating}。 ${entry.summary}`;
     }
     tooltip.replaceChildren(title, text);
     tooltip.classList.add("show");
@@ -1927,7 +1964,7 @@ window.FITNESS_DATA = {
       row.className = "recent-row";
       const icon = document.createElement("span");
       icon.className = "recent-icon";
-      icon.textContent = entry.runKm > 0 && !entry.strengthReps && !entry.sets ? "跑" : entry.walkKm > 0 && !entry.runKm && !entry.sets ? "走" : "练";
+      icon.textContent = entry.isMakeup ? "补" : entry.runKm > 0 && !entry.strengthReps && !entry.sets ? "跑" : entry.walkKm > 0 && !entry.runKm && !entry.sets ? "走" : "练";
       const main = document.createElement("div");
       main.className = "recent-main";
       const title = document.createElement("strong");
