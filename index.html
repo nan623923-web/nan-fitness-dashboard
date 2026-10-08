@@ -674,8 +674,54 @@ h1 { letter-spacing: .01em; text-shadow: 0 0 28px rgba(185,136,255,.3); }
   .details article { padding: 18px; }
   .galaxy-footer { flex-direction: column; gap: 8px; }
 }
+/* Quiet motion, with stronger light on interaction. */
+body::before { animation: star-drift 36s ease-in-out infinite alternate; }
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse at 78% 18%, #a45cff16, transparent 45%);
+  animation: nebula-breathe 9s ease-in-out infinite alternate;
+}
+.mission-kicker span { animation: beacon-glow 3.5s ease-in-out infinite; }
+.avatar { animation: avatar-glow 6s ease-in-out infinite; }
+.lightsaber { animation: saber-breathe 3.8s ease-in-out infinite; }
+.galaxy-art g { translate: 0 0; animation: fighter-float 9s ease-in-out infinite; }
+.stats { position: relative; border-color: #68428b; box-shadow: 0 0 28px #9e58dc14, inset 0 1px #d5b4ff26; }
+.stats::after {
+  content: ""; position: absolute; left: 0; top: 0; width: 35%; height: 1px;
+  background: linear-gradient(90deg, transparent, #ead2ff, transparent);
+  box-shadow: 0 0 10px #b074f8; pointer-events: none;
+  animation: panel-scan 8s ease-in-out infinite;
+}
+.stats article { transition: background .25s ease; }
+.stats strong { text-shadow: 0 0 16px #c59cff35; transition: text-shadow .25s ease; }
+.stats article:hover { background: #9f62d619; }
+.stats article:hover strong { text-shadow: 0 0 9px #d8baff99, 0 0 24px #af65ff66; }
+.activity, .details article { transition: border-color .3s ease, box-shadow .3s ease; }
+.activity:hover, .activity:focus-within, .details article:hover {
+  border-color: #7a4aa0; box-shadow: 0 0 30px #a465e51a, inset 0 0 24px #9a62c708;
+}
+.activity::before { animation: beacon-glow 5s ease-in-out infinite; }
+.heat-cell.level-4 { animation: cell-shimmer 6s ease-in-out infinite; }
+.heat-cell.level-4:nth-child(3n) { animation-delay: -2s; }
+.heat-cell.level-4:nth-child(3n + 1) { animation-delay: -4s; }
+.heat-cell:not(.future):hover, .heat-cell:focus-visible { box-shadow: 0 0 14px #c38bffb3; }
+.recent-row { transition: background .2s ease; border-radius: 6px; }
+.recent-row:hover { background: #b276e90c; }
+.recent-icon { transition: box-shadow .2s ease, border-color .2s ease; }
+.recent-row:hover .recent-icon { border-color: #ad70d2; box-shadow: 0 0 16px #b172e340; }
+.tab { transition: background .2s ease, box-shadow .2s ease; }
+.tab.active { box-shadow: 0 0 14px #a56bda30, inset 0 0 12px #a677cd26; }
+.makeup-actions button:hover:not(:disabled) { box-shadow: 0 0 20px #bd7dff50; border-color: #b98ce0; }
+@keyframes star-drift { from { transform: translateY(0); opacity: .4; } to { transform: translateY(-14px); opacity: .7; } }
+@keyframes nebula-breathe { from { opacity: .4; } to { opacity: 1; } }
+@keyframes beacon-glow { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+@keyframes avatar-glow { 0%, 100% { box-shadow: 0 0 24px #894cde40; } 50% { box-shadow: 0 0 42px #a965ee66; } }
+@keyframes saber-breathe { 0%, 100% { box-shadow: 0 0 7px #bc74ff, 0 0 20px #8e38e1; } 50% { box-shadow: 0 0 11px #e0b8ff, 0 0 30px #b968ff, 0 0 48px #8e38e155; } }
+@keyframes fighter-float { 0%, 100% { translate: 0 0; } 50% { translate: -8px 5px; } }
+@keyframes panel-scan { 0%, 100% { transform: translateX(0); opacity: .3; } 50% { transform: translateX(180%); opacity: 1; } }
+@keyframes cell-shimmer { 0%, 100% { opacity: .8; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  * { scroll-behavior: auto !important; transition: none !important; }
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
 
   </style>
