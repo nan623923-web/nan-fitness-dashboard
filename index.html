@@ -801,7 +801,7 @@ h1 { letter-spacing: .01em; text-shadow: 0 0 28px rgba(185,136,255,.3); }
   </dialog>
   <script>
 window.FITNESS_DATA = {
-  "asOf": "2026-10-06",
+  "asOf": "2026-10-08",
   "source": "飞书健身记录 + Keep 本地只读导出",
   "entries": [
     {
@@ -1696,6 +1696,27 @@ window.FITNESS_DATA = {
       "pace": "7′00″/km",
       "rating": "已完成",
       "summary": "跑步4公里，28分钟，配速7′00″/km；肩部器械4×10，共40次。具体器械名称和重量未提供。"
+    },
+    {
+      "date": "2026-10-07",
+      "type": "室外步行",
+      "strengthReps": 0,
+      "sets": 0,
+      "runKm": 0,
+      "walkKm": 13,
+      "walkKmEstimated": true,
+      "steps": 19000,
+      "rating": "已完成",
+      "summary": "室外散步约4小时、19000步。步行距离约13公里，由步数估算，非设备实测；4小时为活动时长，不据此计算步行配速。"
+    },
+    {
+      "date": "2026-10-08",
+      "type": "肩+肱二头+胸",
+      "strengthReps": 128,
+      "sets": 16,
+      "runKm": 0,
+      "rating": "已完成",
+      "summary": "肩部6×8，共48次，负重约20kg；肱二头6×8，共48次，负重约20kg；胸部4×8，共32次，25kg。重量按用户报告记录，具体动作、器械及重量口径（每侧/总重）未确认。完成后感觉良好，结束时仍有余力，未做到力竭。未提供跑步记录。"
     }
   ]
 };
@@ -1953,7 +1974,7 @@ window.FITNESS_DATA = {
     const detail = [
       entry.strengthReps ? `力量${entry.strengthReps}次` : "",
       entry.runKm ? `跑步${entry.runKm}公里` : "",
-      entry.walkKm ? `步行${entry.walkKm}公里` : "",
+      entry.walkKm ? `步行${entry.walkKmEstimated ? "约" : ""}${entry.walkKm}公里` : "",
       entry.sets && !entry.strengthReps ? `力量${entry.sets}组（次数待补）` : ""
     ].filter(Boolean).join("，");
     return `${formatDate(date)}，${entry.isMakeup ? "补签，" : ""}${detail}，${entry.rating}`;
@@ -1971,7 +1992,7 @@ window.FITNESS_DATA = {
       if (entry.strengthReps) amounts.push(`力量 ${entry.strengthReps} 次 / ${entry.sets} 组`);
       else if (entry.sets) amounts.push(`力量 ${entry.sets} 组 / 次数待补`);
       if (entry.runKm) amounts.push(`跑步 ${entry.runKm} 公里`);
-      if (entry.walkKm) amounts.push(`步行 ${entry.walkKm} 公里`);
+      if (entry.walkKm) amounts.push(`步行 ${entry.walkKmEstimated ? "约" : ""}${entry.walkKm} 公里`);
       if (entry.pace) amounts.push(`配速 ${entry.pace}`);
       text.textContent = `${entry.isMakeup ? "补签 · " : ""}${entry.type} · ${amounts.join(" · ")} · ${entry.rating}。 ${entry.summary}`;
     }
@@ -2150,7 +2171,7 @@ window.FITNESS_DATA = {
       value.textContent = entry.runKm && !entry.strengthReps && !entry.sets
         ? `${entry.runKm} km${entry.pace ? ` · ${entry.pace}` : ""}`
         : entry.walkKm && !entry.runKm && !entry.sets
-          ? `步行 ${entry.walkKm} km`
+          ? `步行 ${entry.walkKmEstimated ? "约" : ""}${entry.walkKm} km`
           : `${entry.strengthReps ? `${entry.strengthReps} 次` : `${entry.sets} 组`}${entry.runKm ? ` + ${entry.runKm} km` : ""}${entry.pace ? ` · ${entry.pace}` : ""}`;
       row.append(icon, main, value);
       row.title = entry.summary;
