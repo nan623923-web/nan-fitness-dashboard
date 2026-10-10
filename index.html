@@ -7,8 +7,7 @@
   <meta name="description" content="个人力量训练、跑步与连续打卡可视化档案">
   <title>我的健身档案</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23101010'/%3E%3Cpath d='M15 22v20M22 17v30M42 17v30M49 22v20M22 32h20' stroke='%239269ff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
-  <style>
-:root {
+  <style>:root {
   color-scheme: dark;
   --bg: #101010;
   --surface: #151515;
@@ -45,6 +44,20 @@ body {
 }
 
 button, a { font: inherit; }
+.cutoff-badge { display: inline-block; padding: 7px 14px; border: 1px solid #a674e64d; border-radius: 20px; color: #d6b8ff; background: #221533b3; font-size: .85rem; }
+.running-panel { margin-top: 24px; }
+.running-controls { display: flex; gap: 12px; flex-wrap: wrap; }
+.running-controls label { color: var(--muted); font-size: .8rem; display: grid; gap: 6px; }
+.running-controls select { font: inherit; color: var(--text); background: #21162f; border: 1px solid #78539b; padding: 8px 10px; border-radius: 8px; }
+.running-chart-scroll { overflow-x: auto; }
+#runningChart { display: block; width: 100%; min-width: 560px; }
+.run-grid { stroke: #b591d825; stroke-dasharray: 4 6; }
+.run-label { fill: #b7a6c9; font-size: 12px; }
+.run-line { fill: none; stroke: #c294ff; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; filter: drop-shadow(0 0 5px #b872ff80); }
+.run-point { fill: #d6b4ff; stroke: #362044; stroke-width: 2; cursor: pointer; }
+.run-point:hover, .run-point:focus { fill: #fff; stroke: #be83ff; stroke-width: 3; outline: none; }
+.running-detail { color: #dec5ff; font-size: .9rem; min-height: 1.5em; }
+@media (max-width: 600px) { .running-panel .section-heading { align-items: flex-start; flex-direction: column; gap: 14px; } .privacy { max-width: 150px; text-align: right; font-size: .7rem; } }
 
 .topbar {
   width: min(1110px, calc(100% - 36px));
@@ -723,10 +736,9 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
-
-  </style>
+</style>
 </head>
-<body>
+<body data-mode="viewer">
   <header class="topbar">
     <a class="brand" href="#top" aria-label="回到顶部">
       <span class="brand-mark" aria-hidden="true"></span>
@@ -759,6 +771,7 @@ body::after {
       <h1 id="profileTitle">我的健身档案</h1>
       <p class="handle">@nan · 持续训练中</p>
       <p class="force-line">愿原力与你的每一次坚持同在。</p>
+      <p class="cutoff-badge">数据截止日期 · <time id="dataCutoff">—</time></p>
       <div class="lightsaber" aria-hidden="true"><span></span></div>
     </section>
 
@@ -772,7 +785,7 @@ body::after {
     </section>
 
     <section class="activity" aria-labelledby="activityTitle">
-      <p class="makeup-help">补签：点击热力图中过去未打卡的格子，确认后消耗1张卡。补签保存在当前浏览器。</p>
+      <p id="accessNotice" class="makeup-help">公开展示 · 访客仅可查看，补签卡仅由本人管理。</p>
       <div class="section-heading">
         <div>
           <h2 id="activityTitle"><span class="panel-code">01 / STAR MAP</span>训练活动</h2>
@@ -811,6 +824,19 @@ body::after {
       </div>
     </section>
 
+    <section class="activity running-panel" aria-labelledby="runningTitle">
+      <div class="section-heading">
+        <div><h2 id="runningTitle"><span class="panel-code">02 / FLIGHT PATH</span>跑步曲线</h2><p id="runningRange"></p></div>
+        <div class="running-controls">
+          <label>时间范围 <select id="runningPeriod"><option value="30">近30天</option><option value="all">全部记录</option></select></label>
+          <label>查看指标 <select id="runningMetric"><option value="distance">每次里程</option><option value="cumulative">累计里程</option></select></label>
+        </div>
+      </div>
+      <div class="running-chart-scroll"><svg id="runningChart" viewBox="0 0 920 300" role="img" aria-label="跑步里程曲线"></svg></div>
+      <p id="runningDetail" class="running-detail" aria-live="polite"></p>
+      <p class="makeup-help">仅展示已记录的跑步；散步和补签不计入。点击或聚焦圆点可查看当天数据，连线不代表未记录日期有运动。</p>
+    </section>
+
     <section class="details">
       <article class="insights">
         <h2><span class="panel-code">02 / TELEMETRY</span>训练洞察</h2>
@@ -835,18 +861,7 @@ body::after {
   </main>
 
   <div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
-  <dialog id="makeupDialog" aria-labelledby="makeupTitle">
-    <h2 id="makeupTitle">使用补签卡</h2>
-    <p id="makeupDate"></p>
-    <p id="makeupMessage" aria-live="polite"></p>
-    <p class="makeup-help">记录保存在当前浏览器；换设备或清除浏览器数据后不会自动同步。</p>
-    <div class="makeup-actions">
-      <button id="cancelMakeup" type="button">取消</button>
-      <button id="confirmMakeup" type="button">确认补签</button>
-    </div>
-  </dialog>
-  <script>
-window.FITNESS_DATA = {
+  <script>window.FITNESS_DATA = {
   "asOf": "2026-10-08",
   "source": "飞书健身记录 + Keep 本地只读导出",
   "entries": [
@@ -1766,15 +1781,16 @@ window.FITNESS_DATA = {
     }
   ]
 };
-
-(() => {
+</script>
+  <script>(() => {
   const data = window.FITNESS_DATA;
   if (!data || !Array.isArray(data.entries)) return;
 
   const makeupStorageKey = "nan-fitness-makeup-dates-v1";
+  const ownerMode = location.protocol === "file:" && document.body.dataset.mode === "owner";
   let storedMakeupDates = [];
   try {
-    const saved = JSON.parse(localStorage.getItem(makeupStorageKey) || "[]");
+    const saved = ownerMode ? JSON.parse(localStorage.getItem(makeupStorageKey) || "[]") : [];
     if (Array.isArray(saved)) storedMakeupDates = [...new Set(saved)].filter((date) =>
       typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) &&
       date < isoDate(new Date()) && date <= data.asOf &&
@@ -1805,7 +1821,11 @@ window.FITNESS_DATA = {
   const availableMakeupCards = Math.max(earnedMakeupCards - usedMakeupCards, 0);
   const passCount = strengthEntries.filter((entry) => ["达标", "完美"].includes(entry.rating)).length;
 
-  setText("asOf", formatShort(asOf));
+  const cutoff = `${asOf.getFullYear()}年${asOf.getMonth() + 1}月${asOf.getDate()}日`;
+  setText("asOf", cutoff);
+  setText("dataCutoff", cutoff);
+  document.getElementById("dataCutoff").dateTime = data.asOf;
+  if (ownerMode) setText("accessNotice", "本地管理版 · 点击热力图中过去未打卡的格子可补签；记录仅保存在当前浏览器。");
   setText("totalReps", totalReps.toLocaleString("zh-CN"));
   setText("totalKm", totalKm.toFixed(1));
   setText("activeDays", `${entries.length} 天`);
@@ -1826,6 +1846,10 @@ window.FITNESS_DATA = {
   buildCumulative();
   buildRecent();
   bindTabs();
+  buildRunning();
+  document.getElementById("runningPeriod").addEventListener("change", buildRunning);
+  document.getElementById("runningMetric").addEventListener("change", buildRunning);
+  if (ownerMode) {
   document.getElementById("cancelMakeup").addEventListener("click", () => document.getElementById("makeupDialog").close());
   document.getElementById("confirmMakeup").addEventListener("click", () => {
     const dialog = document.getElementById("makeupDialog");
@@ -1838,8 +1862,10 @@ window.FITNESS_DATA = {
       document.getElementById("makeupMessage").textContent = "浏览器未允许保存，补签未完成，卡片没有扣除。";
     }
   });
+  }
 
   function openMakeup(date) {
+    if (!ownerMode) return;
     const dialog = document.getElementById("makeupDialog");
     dialog.dataset.date = isoDate(date);
     setText("makeupDate", `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`);
@@ -1848,6 +1874,62 @@ window.FITNESS_DATA = {
       : "当前没有可用补签卡。真实连续打卡每满7天可获得1张。" );
     document.getElementById("confirmMakeup").disabled = availableMakeupCards < 1;
     dialog.showModal();
+  }
+
+  function buildRunning() {
+    const chart = document.getElementById("runningChart");
+    chart.replaceChildren();
+    const recent = document.getElementById("runningPeriod").value === "30";
+    const cumulative = document.getElementById("runningMetric").value === "cumulative";
+    const start = recent ? addDays(asOf, -29) : parseDate(runEntries[0]?.date || data.asOf);
+    let accumulated = 0;
+    const points = runEntries.map((entry) => {
+      accumulated += Number(entry.runKm);
+      return { ...entry, value: cumulative ? accumulated : Number(entry.runKm) };
+    }).filter((entry) => entry.date >= isoDate(start) && entry.date <= data.asOf);
+    setText("runningRange", `${isoDate(start)} — ${data.asOf} · ${points.length}次跑步 · 单位：km`);
+    chart.setAttribute("aria-label", `${cumulative ? "累计" : "每次"}跑步里程曲线，${points.length}次记录`);
+    if (!points.length) {
+      setText("runningDetail", "这个时间范围内还没有跑步记录。");
+      return;
+    }
+    const ns = "http://www.w3.org/2000/svg";
+    const node = (tag, attrs = {}, content) => {
+      const element = document.createElementNS(ns, tag);
+      Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, value));
+      if (content !== undefined) element.textContent = content;
+      return element;
+    };
+    const left = 62, right = 890, top = 24, bottom = 253;
+    const startDay = calendarDayNumber(start), endDay = calendarDayNumber(asOf);
+    const x = (date) => left + (calendarDayNumber(parseDate(date)) - startDay) / Math.max(1, endDay - startDay) * (right - left);
+    const maximum = Math.max(...points.map((point) => point.value), 1);
+    const step = maximum <= 10 ? 2 : maximum <= 20 ? 5 : maximum <= 100 ? 20 : 100;
+    const ceiling = Math.ceil(maximum / step) * step;
+    const y = (value) => bottom - value / ceiling * (bottom - top);
+    const defs = node("defs");
+    const gradient = node("linearGradient", { id: "runArea", x1: "0", y1: "0", x2: "0", y2: "1" });
+    gradient.append(node("stop", { offset: "0%", "stop-color": "#ba87ff", "stop-opacity": ".28" }), node("stop", { offset: "100%", "stop-color": "#ba87ff", "stop-opacity": ".01" }));
+    defs.append(gradient); chart.append(defs);
+    for (let tick = 0; tick <= 4; tick++) {
+      const value = ceiling * tick / 4;
+      chart.append(node("line", { x1: left, y1: y(value), x2: right, y2: y(value), class: "run-grid" }));
+      chart.append(node("text", { x: left - 12, y: y(value) + 4, "text-anchor": "end", class: "run-label" }, Number(value.toFixed(1))));
+      const day = addDays(start, Math.round((endDay - startDay) * tick / 4));
+      chart.append(node("text", { x: x(isoDate(day)), y: bottom + 28, "text-anchor": "middle", class: "run-label" }, `${day.getMonth() + 1}/${day.getDate()}`));
+    }
+    const line = points.map((point, i) => `${i ? "L" : "M"}${x(point.date)},${y(point.value)}`).join(" ");
+    chart.append(node("path", { d: `${line} L${x(points.at(-1).date)},${bottom} L${x(points[0].date)},${bottom} Z`, fill: "url(#runArea)" }));
+    chart.append(node("path", { d: line, class: "run-line" }));
+    const detail = (point) => `${point.date} · 跑步 ${point.runKm} km${point.pace ? ` · ${point.pace}` : ""}${cumulative ? ` · 累计 ${point.value.toFixed(2)} km` : ""}`;
+    points.forEach((point) => {
+      const dot = node("circle", { cx: x(point.date), cy: y(point.value), r: 5, class: "run-point", tabindex: "0", role: "button", "aria-label": detail(point) });
+      dot.append(node("title", {}, detail(point)));
+      ["mouseenter", "focus", "click"].forEach((event) => dot.addEventListener(event, () => setText("runningDetail", detail(point))));
+      dot.addEventListener("keydown", (event) => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); setText("runningDetail", detail(point)); } });
+      chart.append(dot);
+    });
+    setText("runningDetail", detail(points.at(-1)));
   }
 
   function parseDate(value) {
@@ -1976,7 +2058,7 @@ window.FITNESS_DATA = {
       cell.className = `heat-cell level-${level(entry)}${entry?.isMakeup ? " makeup" : ""}${date > asOf ? " future" : ""}`;
       cell.dataset.date = key;
       cell.setAttribute("aria-label", heatAria(date, entry));
-      const canMakeup = !entry && date <= asOf && key < isoDate(new Date());
+      const canMakeup = ownerMode && !entry && date <= asOf && key < isoDate(new Date());
       if (canMakeup) {
         cell.classList.add("can-makeup");
         cell.setAttribute("aria-label", `${formatDate(date)}，未打卡，点击补签`);
@@ -2255,7 +2337,6 @@ window.FITNESS_DATA = {
     });
   }
 })();
-
-  </script>
+</script>
 </body>
 </html>
