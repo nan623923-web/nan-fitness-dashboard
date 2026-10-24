@@ -1863,9 +1863,14 @@ body::after {
       "sets": 0,
       "runKm": 0,
       "rating": "已完成",
-      "summary": "外出理发做发型，当天没有力量训练；室外行走，距离与用时未提供。",
+      "summary": "10月14日（周三）外出理发做发型，没有力量训练；步行游览南湖公园约6–7公里，为本人估计范围，非设备实测；用时未提供。不折算为跑步。",
       "walkReported": true,
-      "walkKm": null
+      "walkKm": null,
+      "walkKmRange": [
+        6,
+        7
+      ],
+      "walkKmEstimated": true
     },
     {
       "date": "2026-10-15",
@@ -1938,6 +1943,16 @@ body::after {
       "pace": "6′00″/km"
     },
     {
+      "date": "2026-10-23",
+      "isMakeup": true,
+      "type": "补签",
+      "strengthReps": 0,
+      "sets": 0,
+      "runKm": 0,
+      "rating": "已补签",
+      "summary": "10月23日原为休息、没有运动。本人明确确认消耗1张补签卡补签；仅用于连续打卡展示，不增加运动量，不参与赚取新卡。"
+    },
+    {
       "date": "2026-10-24",
       "type": "重启A+跑步",
       "strengthReps": 48,
@@ -1955,11 +1970,11 @@ body::after {
   "restDays": [
     {
       "date": "2026-10-18",
-      "summary": "本人更正：10月18日没有运动，先前口述归到19日；当天休息，不自动使用补签卡。"
+      "summary": "10月18日没有运动，为周日正常计划休息。按本人本次明确要求，此日也纳入计划休息保护：不打卡、不算运动量、不扣补签卡，保留连续坚持；取代此前不纳入保护的口径。"
     },
     {
       "date": "2026-10-23",
-      "summary": "本人明确报告没有运动，休息；不自动使用补签卡。"
+      "summary": "10月23日原为休息、没有运动。本人明确确认消耗1张补签卡补签；仅用于连续打卡展示，不增加运动量，不参与赚取新卡。"
     }
   ],
   "pendingSessions": [],
@@ -1969,7 +1984,10 @@ body::after {
       0
     ],
     "preserveStreak": true,
-    "rewardCredit": false
+    "rewardCredit": false,
+    "protectedDates": [
+      "2026-10-18"
+    ]
   }
 };
 </script>
@@ -2018,7 +2036,7 @@ body::after {
   setText("dataCutoff", cutoff);
   document.getElementById("dataCutoff").dateTime = data.asOf;
   if (ownerMode) setText("accessNotice", "本地管理版 · 点击热力图中过去未打卡的格子可补签；记录仅保存在当前浏览器。");
-  setText("restPolicyNotice", data.restPolicy ? `自${data.restPolicy.effectiveFrom}起，每周日为计划休息日：无需打卡、保留连续坚持、不扣卡；不增加实际打卡天数、运动量或赚卡进度。` : "");
+  setText("restPolicyNotice", data.restPolicy ? `自${data.restPolicy.effectiveFrom}起，每周日为计划休息日：无需打卡、保留连续坚持、不扣卡；不增加实际打卡天数、运动量或赚卡进度。${data.restPolicy.protectedDates?.length ? `另按本人确认，将${data.restPolicy.protectedDates.join("、")}纳入计划休息保护。` : ""}` : "");
   setText("totalReps", `${entries.some((entry) => entry.strengthRepsIncomplete) ? "≥" : ""}${totalReps.toLocaleString("zh-CN")}`);
   setText("totalKm", totalKm.toFixed(1));
   setText("activeDays", `${entries.length} 天`);
@@ -2192,7 +2210,8 @@ body::after {
 
   function isScheduledRest(date) {
     const policy = data.restPolicy;
-    return Boolean(policy && isoDate(date) >= policy.effectiveFrom && policy.weekdays.includes(date.getDay()));
+    const key = isoDate(date);
+    return Boolean(policy && ((policy.protectedDates || []).includes(key) || key >= policy.effectiveFrom && policy.weekdays.includes(date.getDay())));
   }
 
   function connectedDates(previous, next) {
@@ -2319,7 +2338,7 @@ body::after {
     const detail = [
       entry.strengthReps ? `力量${entry.strengthRepsIncomplete ? "至少" : ""}${entry.strengthReps}次` : "",
       entry.runReported && !entry.runKm ? "已跑步，里程待补" : "",
-      entry.walkReported && !entry.walkKm ? "已步行，距离待补" : "",
+      entry.walkKmRange ? `步行约${entry.walkKmRange.join("–")}公里` : entry.walkReported && !entry.walkKm ? "已步行，距离待补" : "",
       entry.runKm ? `跑步${entry.runKm}公里` : "",
       entry.walkKm ? `步行${entry.walkKmEstimated ? "约" : ""}${entry.walkKm}公里` : "",
       entry.sets && !entry.strengthReps ? `力量${entry.sets}组（次数待补）` : ""
@@ -2341,7 +2360,8 @@ body::after {
       else if (entry.sets) amounts.push(`力量 ${entry.sets} 组 / 次数待补`);
       if (entry.runKm) amounts.push(`跑步 ${entry.runKm} 公里`);
       if (entry.runReported && !entry.runKm) amounts.push("已跑步，里程待补");
-      if (entry.walkReported && !entry.walkKm) amounts.push("已步行，距离待补");
+      if (entry.walkKmRange) amounts.push(`步行约 ${entry.walkKmRange.join("–")} 公里`);
+      else if (entry.walkReported && !entry.walkKm) amounts.push("已步行，距离待补");
       if (entry.walkKm) amounts.push(`步行 ${entry.walkKmEstimated ? "约" : ""}${entry.walkKm} 公里`);
       if (entry.pace) amounts.push(`配速 ${entry.pace}`);
       text.textContent = `${entry.isMakeup ? "补签 · " : ""}${entry.type} · ${amounts.join(" · ")} · ${entry.rating}。 ${entry.summary}`;
@@ -2518,7 +2538,7 @@ body::after {
       main.append(title, date);
       const value = document.createElement("span");
       value.className = "recent-value";
-      value.textContent = entry.runReported && !entry.runKm && !entry.sets ? "里程待补" : entry.walkReported && !entry.walkKm && !entry.sets ? "距离待补" : entry.runKm && !entry.strengthReps && !entry.sets
+      value.textContent = entry.walkKmRange && !entry.sets ? `步行约 ${entry.walkKmRange.join("–")} km` : entry.runReported && !entry.runKm && !entry.sets ? "里程待补" : entry.walkReported && !entry.walkKm && !entry.sets ? "距离待补" : entry.runKm && !entry.strengthReps && !entry.sets
         ? `${entry.runKm} km${entry.pace ? ` · ${entry.pace}` : ""}`
         : entry.walkKm && !entry.runKm && !entry.sets
           ? `步行 ${entry.walkKmEstimated ? "约" : ""}${entry.walkKm} km`
