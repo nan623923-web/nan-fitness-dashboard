@@ -57,6 +57,7 @@ button, a { font: inherit; }
 .run-point { fill: #d6b4ff; stroke: #362044; stroke-width: 2; cursor: pointer; }
 .run-point:hover, .run-point:focus { fill: #fff; stroke: #be83ff; stroke-width: 3; outline: none; }
 .running-detail { color: #dec5ff; font-size: .9rem; min-height: 1.5em; }
+.heat-cell.scheduled-rest { background: #17343e; box-shadow: inset 0 0 0 1px #62b7c6; }
 @media (max-width: 600px) { .running-panel .section-heading { align-items: flex-start; flex-direction: column; gap: 14px; } .privacy { max-width: 150px; text-align: right; font-size: .7rem; } }
 
 .topbar {
@@ -779,13 +780,14 @@ body::after {
       <article><strong id="totalReps">—</strong><span>累计力量次数</span></article>
       <article><strong id="totalKm">—</strong><span>累计跑步公里</span></article>
       <article><strong id="activeDays">—</strong><span>累计打卡天数</span></article>
-      <article><strong id="currentStreak">—</strong><span>当前连续天数</span></article>
-      <article><strong id="longestStreak">—</strong><span>最长连续天数</span></article>
+      <article><strong id="currentStreak">—</strong><span>当前连续坚持</span></article>
+      <article><strong id="longestStreak">—</strong><span>最长连续坚持</span></article>
       <article><strong id="makeupCards">—</strong><span>可用补签卡</span></article>
     </section>
 
     <section class="activity" aria-labelledby="activityTitle">
       <p id="accessNotice" class="makeup-help">公开展示 · 访客仅可查看，补签卡仅由本人管理。</p>
+      <p id="restPolicyNotice" class="makeup-help"></p>
       <div class="section-heading">
         <div>
           <h2 id="activityTitle"><span class="panel-code">01 / STAR MAP</span>训练活动</h2>
@@ -1929,10 +1931,11 @@ body::after {
       "type": "跑步",
       "strengthReps": 0,
       "sets": 0,
-      "runKm": null,
+      "runKm": 5,
       "rating": "已完成",
-      "summary": "本人报告当天跑步，距离和用时未提供；计入活动打卡，不猜测或补入跑步公里数。",
-      "runReported": true
+      "summary": "周四跑步5公里，用时30分钟，平均配速6′00″/km；由本人2026-10-24补充确认。",
+      "durationMin": 30,
+      "pace": "6′00″/km"
     },
     {
       "date": "2026-10-24",
@@ -1959,7 +1962,15 @@ body::after {
       "summary": "本人明确报告没有运动，休息；不自动使用补签卡。"
     }
   ],
-  "pendingSessions": []
+  "pendingSessions": [],
+  "restPolicy": {
+    "effectiveFrom": "2026-10-25",
+    "weekdays": [
+      0
+    ],
+    "preserveStreak": true,
+    "rewardCredit": false
+  }
 };
 </script>
   <script>(() => {
@@ -1973,7 +1984,7 @@ body::after {
     const saved = ownerMode ? JSON.parse(localStorage.getItem(makeupStorageKey) || "[]") : [];
     if (Array.isArray(saved)) storedMakeupDates = [...new Set(saved)].filter((date) =>
       typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) &&
-      date < isoDate(new Date()) && date <= data.asOf &&
+      date < isoDate(new Date()) && date <= data.asOf && !isScheduledRest(parseDate(date)) &&
       !data.entries.some((entry) => entry.date === date));
   } catch (_) { /* A malformed or inaccessible save must not prevent the dashboard loading. */ }
   const earnedLimit = rewardCount(new Set(data.entries.filter((entry) => !entry.isMakeup).map((entry) => entry.date)), 7);
@@ -1995,8 +2006,8 @@ body::after {
   const strengthEntries = entries.filter((entry) => entry.strengthReps > 0 || entry.sets > 0);
   const runEntries = entries.filter((entry) => entry.runKm > 0);
   const currentStreak = streakEndingAt(asOf, activeDates);
-  const longestStreak = longest(activeDates);
-  const currentActualStreak = streakEndingAt(asOf, actualDates);
+  const longestStreak = Math.max(longest(activeDates), currentStreak);
+  const currentActualStreak = trainingStreakEndingAt(asOf, actualDates);
   const earnedMakeupCards = rewardCount(actualDates, 7);
   const usedMakeupCards = entries.filter((entry) => entry.isMakeup).length;
   const availableMakeupCards = Math.max(earnedMakeupCards - usedMakeupCards, 0);
@@ -2007,6 +2018,7 @@ body::after {
   setText("dataCutoff", cutoff);
   document.getElementById("dataCutoff").dateTime = data.asOf;
   if (ownerMode) setText("accessNotice", "本地管理版 · 点击热力图中过去未打卡的格子可补签；记录仅保存在当前浏览器。");
+  setText("restPolicyNotice", data.restPolicy ? `自${data.restPolicy.effectiveFrom}起，每周日为计划休息日：无需打卡、保留连续坚持、不扣卡；不增加实际打卡天数、运动量或赚卡进度。` : "");
   setText("totalReps", `${entries.some((entry) => entry.strengthRepsIncomplete) ? "≥" : ""}${totalReps.toLocaleString("zh-CN")}`);
   setText("totalKm", totalKm.toFixed(1));
   setText("activeDays", `${entries.length} 天`);
@@ -2035,7 +2047,7 @@ body::after {
   document.getElementById("confirmMakeup").addEventListener("click", () => {
     const dialog = document.getElementById("makeupDialog");
     const date = dialog.dataset.date;
-    if (!date || byDate.has(date) || availableMakeupCards < 1) return;
+    if (!date || byDate.has(date) || isScheduledRest(parseDate(date)) || availableMakeupCards < 1) return;
     try {
       localStorage.setItem(makeupStorageKey, JSON.stringify([...storedMakeupDates, date]));
       location.reload();
@@ -2046,7 +2058,7 @@ body::after {
   }
 
   function openMakeup(date) {
-    if (!ownerMode) return;
+    if (!ownerMode || isScheduledRest(date)) return;
     const dialog = document.getElementById("makeupDialog");
     dialog.dataset.date = isoDate(date);
     setText("makeupDate", `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`);
@@ -2168,10 +2180,32 @@ body::after {
 
   function streakEndingAt(date, set) {
     let count = 0;
+    let hasActivity = false;
     let cursor = new Date(date);
-    while (set.has(isoDate(cursor))) {
+    while (set.has(isoDate(cursor)) || isScheduledRest(cursor)) {
+      hasActivity ||= set.has(isoDate(cursor));
       count += 1;
       cursor = addDays(cursor, -1);
+    }
+    return hasActivity ? count : 0;
+  }
+
+  function isScheduledRest(date) {
+    const policy = data.restPolicy;
+    return Boolean(policy && isoDate(date) >= policy.effectiveFrom && policy.weekdays.includes(date.getDay()));
+  }
+
+  function connectedDates(previous, next) {
+    for (let cursor = addDays(previous, 1); cursor < next; cursor = addDays(cursor, 1)) {
+      if (!isScheduledRest(cursor)) return false;
+    }
+    return true;
+  }
+
+  function trainingStreakEndingAt(date, set) {
+    let count = 0;
+    for (let cursor = new Date(date); set.has(isoDate(cursor)) || isScheduledRest(cursor); cursor = addDays(cursor, -1)) {
+      if (set.has(isoDate(cursor))) count += 1;
     }
     return count;
   }
@@ -2183,7 +2217,7 @@ body::after {
     let previous = null;
     for (const value of sorted) {
       const date = parseDate(value);
-      if (previous && calendarDayNumber(date) - calendarDayNumber(previous) === 1) current += 1;
+      if (previous && connectedDates(previous, date)) current += calendarDayNumber(date) - calendarDayNumber(previous);
       else current = 1;
       best = Math.max(best, current);
       previous = date;
@@ -2197,7 +2231,7 @@ body::after {
     let previous = null;
     for (const value of [...set].sort()) {
       const date = parseDate(value);
-      if (previous && calendarDayNumber(date) - calendarDayNumber(previous) === 1) current += 1;
+      if (previous && connectedDates(previous, date)) current += 1;
       else {
         total += Math.floor(current / interval);
         current = 1;
@@ -2238,8 +2272,9 @@ body::after {
       cell.type = "button";
       cell.className = `heat-cell level-${level(entry)}${entry?.isMakeup ? " makeup" : ""}${date > asOf ? " future" : ""}`;
       cell.dataset.date = key;
+      if (!entry && isScheduledRest(date)) cell.classList.add("scheduled-rest");
       cell.setAttribute("aria-label", heatAria(date, entry));
-      const canMakeup = ownerMode && !entry && date <= asOf && key < isoDate(new Date());
+      const canMakeup = ownerMode && !entry && !isScheduledRest(date) && date <= asOf && key < isoDate(new Date());
       if (canMakeup) {
         cell.classList.add("can-makeup");
         cell.setAttribute("aria-label", `${formatDate(date)}，未打卡，点击补签`);
@@ -2278,7 +2313,8 @@ body::after {
   }
 
   function heatAria(date, entry) {
-    if (date > asOf) return `${formatDate(date)}，未来日期`;
+    if (date > asOf) return `${formatDate(date)}，${isScheduledRest(date) ? "未来计划休息日" : "未来日期"}`;
+    if (!entry && isScheduledRest(date)) return `${formatDate(date)}，计划休息，保留连续坚持，无需打卡`;
     if (!entry) return `${formatDate(date)}，${restByDate.has(isoDate(date)) ? "已确认休息，无运动" : "暂无记录"}`;
     const detail = [
       entry.strengthReps ? `力量${entry.strengthRepsIncomplete ? "至少" : ""}${entry.strengthReps}次` : "",
@@ -2296,7 +2332,8 @@ body::after {
     const title = document.createElement("strong");
     const text = document.createElement("span");
     title.textContent = formatDate(date);
-    if (date > asOf) text.textContent = "未来日期";
+    if (date > asOf) text.textContent = isScheduledRest(date) ? "未来计划休息日，尚未计入统计" : "未来日期";
+    else if (!entry && isScheduledRest(date)) text.textContent = "计划休息日：无需打卡、保留连续坚持、不扣补签卡；不增加实际打卡天数、运动量或赚卡进度。";
     else if (!entry) text.textContent = restByDate.get(isoDate(date))?.summary || "暂无记录，不代表没有运动";
     else {
       const amounts = [];
