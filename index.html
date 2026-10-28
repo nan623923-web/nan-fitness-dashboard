@@ -864,7 +864,7 @@ body::after {
 
   <div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
   <script>window.FITNESS_DATA = {
-  "asOf": "2026-10-24",
+  "asOf": "2026-10-28",
   "source": "飞书健身记录 + Keep 本地只读导出",
   "entries": [
     {
@@ -1965,6 +1965,28 @@ body::after {
       "durationEstimated": true,
       "restartSession": 1,
       "restartVariant": "A"
+    },
+    {
+      "date": "2026-10-25",
+      "type": "室外步行",
+      "strengthReps": 0,
+      "sets": 0,
+      "runKm": 0,
+      "walkKm": null,
+      "walkReported": true,
+      "steps": 37000,
+      "stepsQualifier": "多",
+      "rating": "已完成",
+      "summary": "步行37000多步。仅记录步数，距离、用时未提供，不推算或重复累计里程。"
+    },
+    {
+      "date": "2026-10-28",
+      "type": "胸+俯卧撑+腹",
+      "strengthReps": 208,
+      "sets": 21,
+      "runKm": 0,
+      "rating": "已完成",
+      "summary": "卧推空杆共40次分4组（各组次数分配未提供）；之后每侧加5kg，2组分别10、8次，共18次，杠重未知，不换算总重量。俯卧撑3×10，共30次。无负重卷腹6×10，共60次。蝴蝶夹胸6×10，共60次，前2组30kg、后4组25kg。合计208次、21组；未报告跑步或肩部训练。"
     }
   ],
   "restDays": [
@@ -1975,6 +1997,14 @@ body::after {
     {
       "date": "2026-10-23",
       "summary": "10月23日原为休息、没有运动。本人明确确认消耗1张补签卡补签；仅用于连续打卡展示，不增加运动量，不参与赚取新卡。"
+    },
+    {
+      "date": "2026-10-26",
+      "summary": "实际没有运动。本人要求将25日大步量后的26日作为恢复日保留连续坚持；不伪造本日运动或重复累计25日步数，不扣补签卡、不增加真实运动天数或赚卡进度。"
+    },
+    {
+      "date": "2026-10-27",
+      "summary": "本人明确报告没有运动，休息。不自动使用补签卡，也不按运动日记录。"
     }
   ],
   "pendingSessions": [],
@@ -1986,7 +2016,8 @@ body::after {
     "preserveStreak": true,
     "rewardCredit": false,
     "protectedDates": [
-      "2026-10-18"
+      "2026-10-18",
+      "2026-10-26"
     ]
   }
 };
@@ -2239,6 +2270,11 @@ body::after {
       if (previous && connectedDates(previous, date)) current += calendarDayNumber(date) - calendarDayNumber(previous);
       else current = 1;
       best = Math.max(best, current);
+      let protectedTail = 0;
+      for (let cursor = addDays(date, 1); cursor <= asOf && isScheduledRest(cursor); cursor = addDays(cursor, 1)) {
+        protectedTail += 1;
+      }
+      best = Math.max(best, current + protectedTail);
       previous = date;
     }
     return best;
@@ -2338,7 +2374,7 @@ body::after {
     const detail = [
       entry.strengthReps ? `力量${entry.strengthRepsIncomplete ? "至少" : ""}${entry.strengthReps}次` : "",
       entry.runReported && !entry.runKm ? "已跑步，里程待补" : "",
-      entry.walkKmRange ? `步行约${entry.walkKmRange.join("–")}公里` : entry.walkReported && !entry.walkKm ? "已步行，距离待补" : "",
+      entry.steps ? `步行${entry.steps.toLocaleString("zh-CN")}${entry.stepsQualifier || ""}步` : entry.walkKmRange ? `步行约${entry.walkKmRange.join("–")}公里` : entry.walkReported && !entry.walkKm ? "已步行，距离待补" : "",
       entry.runKm ? `跑步${entry.runKm}公里` : "",
       entry.walkKm ? `步行${entry.walkKmEstimated ? "约" : ""}${entry.walkKm}公里` : "",
       entry.sets && !entry.strengthReps ? `力量${entry.sets}组（次数待补）` : ""
@@ -2360,8 +2396,9 @@ body::after {
       else if (entry.sets) amounts.push(`力量 ${entry.sets} 组 / 次数待补`);
       if (entry.runKm) amounts.push(`跑步 ${entry.runKm} 公里`);
       if (entry.runReported && !entry.runKm) amounts.push("已跑步，里程待补");
+      if (entry.steps) amounts.push(`步行 ${entry.steps.toLocaleString("zh-CN")}${entry.stepsQualifier || ""} 步`);
       if (entry.walkKmRange) amounts.push(`步行约 ${entry.walkKmRange.join("–")} 公里`);
-      else if (entry.walkReported && !entry.walkKm) amounts.push("已步行，距离待补");
+      else if (entry.walkReported && !entry.walkKm && !entry.steps) amounts.push("已步行，距离待补");
       if (entry.walkKm) amounts.push(`步行 ${entry.walkKmEstimated ? "约" : ""}${entry.walkKm} 公里`);
       if (entry.pace) amounts.push(`配速 ${entry.pace}`);
       text.textContent = `${entry.isMakeup ? "补签 · " : ""}${entry.type} · ${amounts.join(" · ")} · ${entry.rating}。 ${entry.summary}`;
@@ -2538,7 +2575,7 @@ body::after {
       main.append(title, date);
       const value = document.createElement("span");
       value.className = "recent-value";
-      value.textContent = entry.walkKmRange && !entry.sets ? `步行约 ${entry.walkKmRange.join("–")} km` : entry.runReported && !entry.runKm && !entry.sets ? "里程待补" : entry.walkReported && !entry.walkKm && !entry.sets ? "距离待补" : entry.runKm && !entry.strengthReps && !entry.sets
+      value.textContent = entry.steps && !entry.sets && !entry.runKm ? `${entry.steps.toLocaleString("zh-CN")}${entry.stepsQualifier || ""} 步` : entry.walkKmRange && !entry.sets ? `步行约 ${entry.walkKmRange.join("–")} km` : entry.runReported && !entry.runKm && !entry.sets ? "里程待补" : entry.walkReported && !entry.walkKm && !entry.sets ? "距离待补" : entry.runKm && !entry.strengthReps && !entry.sets
         ? `${entry.runKm} km${entry.pace ? ` · ${entry.pace}` : ""}`
         : entry.walkKm && !entry.runKm && !entry.sets
           ? `步行 ${entry.walkKmEstimated ? "约" : ""}${entry.walkKm} km`
