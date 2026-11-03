@@ -864,7 +864,7 @@ body::after {
 
   <div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
   <script>window.FITNESS_DATA = {
-  "asOf": "2026-11-02",
+  "asOf": "2026-11-03",
   "source": "飞书健身记录 + Keep 本地只读导出",
   "entries": [
     {
@@ -2247,6 +2247,87 @@ body::after {
       ],
       "sessionStatus": "已收工：剩余腿桥本人主动跳过",
       "progressionPass": false
+    },
+    {
+      "date": "2026-11-03",
+      "type": "俯卧撑+水平引体+肩+腹",
+      "strengthReps": 380,
+      "sets": 20,
+      "setsIncomplete": true,
+      "setsRange": [
+        20,
+        null
+      ],
+      "runKm": 0,
+      "rating": "已记录（未评技术达标）",
+      "summary": "按本次消息日期暂记11月3日，待本人更正。标准俯卧撑4×10=40、宽距4×10=40，自述规范且尚有余力。高杆水平引体共60：肚脐附近高度40次，再降低一档20次，各档组数/逐组次数未报，不猜6×10，握法与低档动作质量待补。手臂充血，原话“有点长痛的感觉，说明练到位了”为本人感受及理解，不能作为增肌/进阶证据，疼痛性质待确认。肩部动作暂称低位拉绳类单侧肩部训练（名称待确认），每侧6×15=90，双侧共180次；5或10kg记不确定，不套用旧25kg肩推成绩，不擅自判定侧平举或地雷杆推。卷腹6×10=60，吃力；本次负重未明确，不能沿用昨天地0kg当本日已确认。总次数按左右分开累计380，已知20组成对/双侧回合（俯卧撑8、肩6轮、腹6），另引体组数待补；肩侧分开为12组。尚未确认整场结束，不触发次日推送。",
+      "sessionStatus": "分段汇报，整场结束待确认",
+      "progressionPass": false,
+      "segments": [
+        {
+          "movement": "标准俯卧撑",
+          "sets": 4,
+          "repsPerSet": [
+            10,
+            10,
+            10,
+            10
+          ]
+        },
+        {
+          "movement": "宽距俯卧撑",
+          "sets": 4,
+          "repsPerSet": [
+            10,
+            10,
+            10,
+            10
+          ]
+        },
+        {
+          "movement": "肚脐档水平引体",
+          "reps": 40,
+          "sets": null
+        },
+        {
+          "movement": "低一档水平引体",
+          "reps": 20,
+          "sets": null
+        },
+        {
+          "movement": "低位拉绳类肩部动作（待确认）",
+          "sets": 6,
+          "repsPerSetPerSide": [
+            15,
+            15,
+            15,
+            15,
+            15,
+            15
+          ],
+          "repsPerSide": 90,
+          "totalReps": 180,
+          "loadKg": null,
+          "reportedLoadPossibilitiesKg": [
+            5,
+            10
+          ]
+        },
+        {
+          "movement": "卷腹",
+          "sets": 6,
+          "repsPerSet": [
+            10,
+            10,
+            10,
+            10,
+            10,
+            10
+          ],
+          "externalLoadKg": null
+        }
+      ],
+      "setCountingNote": "已知20个双侧/成对回合；引体组数未报，肩侧分开为12组。"
     }
   ],
   "restDays": [
@@ -2348,7 +2429,7 @@ body::after {
   setText("makeupCards", `${availableMakeupCards} 张`);
   setText("strengthDays", `${strengthEntries.length} 天`);
   setText("runDays", `${entries.filter((entry) => entry.runKm > 0 || entry.runReported).length} 天`);
-  setText("totalSets", `${entries.some((entry) => entry.setsRange) ? "≥" : ""}${totalSets} 组`);
+  setText("totalSets", `${entries.some((entry) => entry.setsRange || entry.setsIncomplete) ? "≥" : ""}${totalSets} 组`);
   setText("favoriteType", favoriteType(strengthEntries));
   setText("passRate", strengthEntries.length ? `${Math.round(passCount / strengthEntries.length * 100)}%` : "—");
   setText("earnedMakeupCards", `${earnedMakeupCards} 张`);
@@ -2664,7 +2745,7 @@ body::after {
     else if (!entry) text.textContent = restByDate.get(isoDate(date))?.summary || "暂无记录，不代表没有运动";
     else {
       const amounts = [];
-      if (entry.strengthReps) amounts.push(`力量 ${entry.strengthRepsIncomplete ? "至少 " : ""}${entry.strengthReps} 次 / ${entry.setsRange ? entry.setsRange.join("–") : entry.sets} 组`);
+      if (entry.strengthReps) amounts.push(`力量 ${entry.strengthRepsIncomplete ? "至少 " : ""}${entry.strengthReps} 次 / ${entry.setsIncomplete ? `至少 ${entry.sets}（引体组数待补）` : entry.setsRange ? entry.setsRange.join("–") : entry.sets} 组`);
       else if (entry.sets) amounts.push(`力量 ${entry.sets} 组 / 次数待补`);
       if (entry.runKm) amounts.push(`跑步 ${entry.runKm} 公里`);
       if (entry.runReported && !entry.runKm) amounts.push("已跑步，里程待补");
