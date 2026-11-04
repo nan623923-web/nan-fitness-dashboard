@@ -864,7 +864,7 @@ body::after {
 
   <div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
   <script>window.FITNESS_DATA = {
-  "asOf": "2026-11-03",
+  "asOf": "2026-11-04",
   "source": "飞书健身记录 + Keep 本地只读导出",
   "entries": [
     {
@@ -2329,6 +2329,25 @@ body::after {
       ],
       "setCountingNote": "已知20个双侧/成对回合；引体组数未报，肩侧分开为12组。",
       "armDiscomfort": "本人确认正常酸胀充血，反馈时已消退"
+    },
+    {
+      "date": "2026-11-04",
+      "type": "爬坡＋跑步（混合有氧）",
+      "strengthReps": 0,
+      "sets": 0,
+      "runKm": 0,
+      "cardioKm": 5,
+      "cardioDuration": "57:09",
+      "cardioDurationSeconds": 3429,
+      "averageSpeedKmh": 5.2,
+      "averageInclineDisplay": 10,
+      "inclineUnit": null,
+      "deviceEstimatedCaloriesKcal": 620,
+      "rating": "已记录",
+      "summary": "本人明确日期2026-11-04，原话“11.4，爬坡加跑步，这个是数据”。跑步机屏幕：总距离5.0km；总用时57:09；平均速度5.2km/h；平均坡度显示10（图上未显示单位）；620kcal为器械估算。平均心率显示0，按未取得有效心率读数处理，不当作真实心率为0。属于爬坡＋跑步混合有氧，各段距离/用时未知，不将5km全部算纯跑步，不作为跑步能力比较配速。57:09÷5计算的混合平均用时约11分26秒/km，仅为总量计算。未报告腿举、深蹲或其他力量，不补入组次，不据此升级囚徒六项。",
+      "splitDistancesUnknown": true,
+      "progressionPass": false,
+      "runReported": true
     }
   ],
   "restDays": [
@@ -2569,7 +2588,7 @@ body::after {
   }
 
   function volume(entry) {
-    return (entry?.strengthReps || 0) + (entry?.sets || 0) * 5 + (entry?.runKm || 0) * 20 + (entry?.walkKm || 0) * 5;
+    return (entry?.strengthReps || 0) + (entry?.sets || 0) * 5 + (entry?.runKm || 0) * 20 + (entry?.walkKm || 0) * 5 + (entry?.cardioKm || 0) * 20;
   }
 
   function level(entry) {
@@ -2727,9 +2746,10 @@ body::after {
     if (!entry) return `${formatDate(date)}，${restByDate.has(isoDate(date)) ? "已确认休息，无运动" : "暂无记录"}`;
     const detail = [
       entry.strengthReps ? `力量${entry.strengthRepsIncomplete ? "至少" : ""}${entry.strengthReps}次` : "",
-      entry.runReported && !entry.runKm ? "已跑步，里程待补" : "",
+      entry.runReported && !entry.runKm && !entry.cardioKm ? "已跑步，里程待补" : "",
       entry.steps ? `步行${entry.steps.toLocaleString("zh-CN")}${entry.stepsQualifier || ""}步` : entry.walkKmRange ? `步行约${entry.walkKmRange.join("–")}公里` : entry.walkReported && !entry.walkKm ? "已步行，距离待补" : "",
       entry.runKm ? `跑步${entry.runKm}公里` : "",
+      entry.cardioKm ? `混合有氧${entry.cardioKm}公里，用时${entry.cardioDuration || "待补"}` : "",
       entry.walkKm ? `步行${entry.walkKmEstimated ? "约" : ""}${entry.walkKm}公里` : "",
       entry.sets && !entry.strengthReps ? `力量${entry.sets}组（次数待补）` : ""
     ].filter(Boolean).join("，");
@@ -2749,11 +2769,12 @@ body::after {
       if (entry.strengthReps) amounts.push(`力量 ${entry.strengthRepsIncomplete ? "至少 " : ""}${entry.strengthReps} 次 / ${entry.setsIncomplete ? `至少 ${entry.sets}（引体组数待补）` : entry.setsRange ? entry.setsRange.join("–") : entry.sets} 组`);
       else if (entry.sets) amounts.push(`力量 ${entry.sets} 组 / 次数待补`);
       if (entry.runKm) amounts.push(`跑步 ${entry.runKm} 公里`);
-      if (entry.runReported && !entry.runKm) amounts.push("已跑步，里程待补");
+      if (entry.runReported && !entry.runKm && !entry.cardioKm) amounts.push("已跑步，里程待补");
       if (entry.steps) amounts.push(`步行 ${entry.steps.toLocaleString("zh-CN")}${entry.stepsQualifier || ""} 步`);
       if (entry.walkKmRange) amounts.push(`步行约 ${entry.walkKmRange.join("–")} 公里`);
       else if (entry.walkReported && !entry.walkKm && !entry.steps) amounts.push("已步行，距离待补");
       if (entry.walkKm) amounts.push(`步行 ${entry.walkKmEstimated ? "约" : ""}${entry.walkKm} 公里`);
+      if (entry.cardioKm) amounts.push(`混合有氧 ${entry.cardioKm} 公里 / ${entry.cardioDuration || "用时待补"}`);
       if (entry.pace) amounts.push(`配速 ${entry.pace}`);
       text.textContent = `${entry.isMakeup ? "补签 · " : ""}${entry.type} · ${amounts.join(" · ")} · ${entry.rating}。 ${entry.summary}`;
     }
@@ -2919,7 +2940,7 @@ body::after {
       row.className = "recent-row";
       const icon = document.createElement("span");
       icon.className = "recent-icon";
-      icon.textContent = entry.isMakeup ? "补" : (entry.runKm > 0 || entry.runReported) && !entry.strengthReps && !entry.sets ? "跑" : (entry.walkKm > 0 || entry.walkReported) && !entry.runKm && !entry.sets ? "走" : "练";
+      icon.textContent = entry.isMakeup ? "补" : entry.cardioKm ? "氧" : (entry.runKm > 0 || entry.runReported) && !entry.strengthReps && !entry.sets ? "跑" : (entry.walkKm > 0 || entry.walkReported) && !entry.runKm && !entry.sets ? "走" : "练";
       const main = document.createElement("div");
       main.className = "recent-main";
       const title = document.createElement("strong");
@@ -2929,7 +2950,7 @@ body::after {
       main.append(title, date);
       const value = document.createElement("span");
       value.className = "recent-value";
-      value.textContent = entry.steps && !entry.sets && !entry.runKm ? `${entry.steps.toLocaleString("zh-CN")}${entry.stepsQualifier || ""} 步` : entry.walkKmRange && !entry.sets ? `步行约 ${entry.walkKmRange.join("–")} km` : entry.runReported && !entry.runKm && !entry.sets ? "里程待补" : entry.walkReported && !entry.walkKm && !entry.sets ? "距离待补" : entry.runKm && !entry.strengthReps && !entry.sets
+      value.textContent = entry.cardioKm ? `混合 ${entry.cardioKm} km · ${entry.cardioDuration || "用时待补"}` : entry.steps && !entry.sets && !entry.runKm ? `${entry.steps.toLocaleString("zh-CN")}${entry.stepsQualifier || ""} 步` : entry.walkKmRange && !entry.sets ? `步行约 ${entry.walkKmRange.join("–")} km` : entry.runReported && !entry.runKm && !entry.sets ? "里程待补" : entry.walkReported && !entry.walkKm && !entry.sets ? "距离待补" : entry.runKm && !entry.strengthReps && !entry.sets
         ? `${entry.runKm} km${entry.pace ? ` · ${entry.pace}` : ""}`
         : entry.walkKm && !entry.runKm && !entry.sets
           ? `步行 ${entry.walkKmEstimated ? "约" : ""}${entry.walkKm} km`
